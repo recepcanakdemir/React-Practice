@@ -3,54 +3,21 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 
 function Square(props){
+    const className = props.isWinner ? 'square winner' : 'square'; // if isWinner property of this square is not null, then this square is a winner square
     return (
-        <div className='square' onClick={props.onClick}>
+        <div className={className} onClick={props.onClick}>
             {props.value}
         </div>
     );
 }
 
-
-//class Board extends React.Component{
-
-    //renderSquare(i){
-        //return(
-            //<Square
-                //value = {this.props.squares[i]}
-                //onClick = {() => this.props.onClick(i)}
-            ///>
-        //);
-    //}
-
-    //render(){
-        //return(
-            //<div class="board-container">
-                //<div className='board-row'>
-                    //{this.renderSquare(0)}
-                    //{this.renderSquare(1)}
-                    //{this.renderSquare(2)}
-                //</div>
-                //<div className='board-row'>
-                    //{this.renderSquare(3)}
-                    //{this.renderSquare(4)}
-                    //{this.renderSquare(5)}
-                //</div>
-                //<div className='board-row'>
-                    //{this.renderSquare(6)}
-                    //{this.renderSquare(7)}
-                    //{this.renderSquare(8)}
-                //</div>
-            //</div>
-        //)
-    //}
-//}
-
 class Board extends React.Component {
-    renderSquare(i) {
+    renderSquare(i, isWinner) {
         return (
             <Square
                 value={this.props.squares[i]}
                 onClick={() => this.props.onClick(i)}
+                isWinner={isWinner}
             />
         );
     }
@@ -58,11 +25,13 @@ class Board extends React.Component {
     render() {
         const boardSize = 3; // this is size of a column (it means number of rows)
         const squares = [] // this will store rows
+        const winnerLine = calculateWinner(this.props.squares) // determine the winning line
         for(let i = 0; i < boardSize; i++){
             const rowSquares = []; // this will store each square in a row
             for(let j = 0; j < boardSize; j++){
                 const sqaureIndex = i*boardSize + j; // this line finds what is the index of the current square by the i and j value
-                rowSquares.push(this.renderSquare(sqaureIndex)); // finally pushes the square to the list that is storing squares in a row
+                const isWinnerSquare = winnerLine && winnerLine.includes(sqaureIndex); // if there is a winner and this winner list contains this current square, make isWinnerSquare pSquare roperty true
+                rowSquares.push(this.renderSquare(sqaureIndex, isWinnerSquare)); // finally pushes the square to the list that is storing squares in a row
             }
             squares.push(<div className="board-row">{rowSquares}</div>) // pushing every to the squares list
         }
@@ -85,7 +54,6 @@ class Game extends React.Component{
             xIsNext: true,
             asc : true,
         }
-
     }
     
     handleClick(i){
@@ -111,7 +79,7 @@ class Game extends React.Component{
         })
     }
 
-    jumpAndMakeBold(step){
+    jumpTo(step){
         this.setState({
             stepNumber:step,
             xIsNext: (step % 2) === 0,
@@ -122,7 +90,7 @@ class Game extends React.Component{
         const history = this.state.history;
         const current = history[this.state.stepNumber];
         const winner = calculateWinner(current.squares);
-        console.log(this.state.asc)
+
         // this is like a forEach, this code takes each history element as a step parameter displays on the screen, move is increased automatically thanks to mapping
         let moves = history.map((step, move) => {
             const tuple = step.xPos + " ," + step.yPos ;
@@ -131,21 +99,25 @@ class Game extends React.Component{
                 <li key={move}> 
                     <button 
                         className = {move === this.state.stepNumber ? 'make-bolder': ''}  // if current step is equal to the move number on the button then it will be bolder, when we clicked on a button the current step is already becoming the same number with the move number on the button that is clicked
-                        onClick = {() => this.jumpAndMakeBold(move)}>                     
+                        onClick = {() => this.jumpTo(move)}>                     
                             {desc}
                     </button>
                 </li>
             );
         });
         if(this.state.asc === false){
-            moves = moves.slice(1,moves.length-1).reverse();
+             moves = moves.reverse();
         }
         
         let status;
         if(winner){
-            status = 'Winner: ' + winner;
+            status = 'Winner: ' + current.squares[winner[0]];
         }else{
-            status = 'Winner: ' + (this.state.xIsNext ? 'X' : 'O');
+            if(!current.squares.includes(null)){
+                status = "It is a DRAW";
+            }else{
+                status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
+            }
         }
 
         return(
@@ -164,9 +136,9 @@ class Game extends React.Component{
                 <input type="checkbox" id="switch" className ="checkbox" onClick={()=>{
                     this.setState({asc:!this.state.asc});
                 }}/>
-                <label for="switch"
-                    className="toggle">
+                <label for="switch"  className="toggle">
                 </label>
+
             </div>
         )
     }
@@ -191,7 +163,7 @@ function calculateWinner(squares){
   for (let i = 0; i < lines.length; i++) {
     const [a, b, c] = lines[i];
     if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a];
+      return lines[i];
     }
   }
 
